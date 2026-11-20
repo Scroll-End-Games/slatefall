@@ -4,7 +4,7 @@
 // Short words are drawn in the pixel lettering, which has capitals only; sentences use the phone's own typeface.
 
 export const TEXTS = {
-  version: "0.1.0",
+  version: "0.1.1",
   name: "Slatefall",
   // The name as its title shows it, large and in two lines; together they spell the name.
   nameLines: ["Slate", "fall"],
@@ -44,6 +44,12 @@ export const TEXTS = {
   off: "Off",
   back: "Back",
   versionLabel: "Version",
+
+  // One plain line in both menus when nothing can be kept: the browser blocks the storage (as when
+  // all cookies are blocked), or the storage is full. A private window keeps the game until it closes.
+  unkept: "This browser keeps nothing: your best score ends with this visit.",
+  // One plain line over the page when the game's own code fails
+  fault: "Something went wrong. Your best score is safe. Please reload.",
 
   // How to play: four short lines, for fingers and for keys
   how: {

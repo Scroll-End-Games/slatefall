@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Only the game's own files may run, style or load here; no plugin, and no other base address. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; object-src 'none'; base-uri 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Slatefall</title>
 <meta name="description" content="A retro falling-block game for one player.">
@@ -18,6 +20,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Slatefall">
 <link rel="stylesheet" href="style.css">
+<!-- Every part app.js loads, named up front, so that they arrive side by side and not one after another. -->
+<link rel="modulepreload" href="core.js">
+<link rel="modulepreload" href="pixel.js">
+<link rel="modulepreload" href="input.js">
+<link rel="modulepreload" href="store.js">
+<link rel="modulepreload" href="sound.js">
+<link rel="modulepreload" href="texts.js">
 <script type="module" src="app.js"></script>
 </head>
 <body>

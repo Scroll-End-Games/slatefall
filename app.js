@@ -7,7 +7,7 @@ import {
   ART, SIGN_HEIGHT, ICONS, textWidth, drawText, drawTitle, titleSize, titleScale, thousands, slotOf, drawTile, pixelRect, drawKey, drawIcon,
 } from "./pixel.js";
 import { startInput } from "./input.js";
-import { load, keep } from "./store.js";
+import { KEY, load, keep } from "./store.js";
 import * as audio from "./sound.js";
 import { TEXTS as T } from "./texts.js";
 
@@ -64,9 +64,10 @@ function broughtBack(saved) {
 
 const restored = broughtBack(kept.game);
 let game = restored ?? pause(newGame(newSeed()));  // a new game waits for Play
-let started = restored !== null;  // the game has been played: there is something to keep
 let mine = false;     // this page has changed the game since it loaded: the game to keep is its own
-let unsaved = false;  // something has changed since the last save
+let unsaved = false;  // something has changed since the last save, or could not be kept
+let lost = storage === null;  // nothing can be kept: the storage cannot be reached, or the last save failed
+let broken = false;   // a fault in the game's own code has stopped the game (the safety net, below)
 let falling = 0;      // counts the pieces as they come, so that a stroke knows the piece it began on
 let best = kept.best;      // the best score
 let dark = kept.dark;      // the player's choice: true for dark, false for light, null to follow the system
@@ -78,14 +79,21 @@ let newBest = false;
 // Saves everything. A game that is over is not a game in progress. Another page of the game may
 // have saved since this one loaded (a tab left open beside the game on the home screen), so no
 // page ever lowers the best score, and a page that has not played leaves the saved game alone
-// (keep, in store.js).
+// (keep, in store.js). After a fault nothing is written: what was kept stays as it was.
 function persist() {
+  if (broken) return;
   const written = keep(storage, { best, dark, music, sounds, seen, game: game.status !== "over" ? game : null }, mine);
   if (written) {
     best = written.best;
     seen = written.seen;
   }
-  unsaved = false;
+  // What could not be kept stays unsaved: it is tried again at the next save and when the page
+  // closes. The menu says in one plain line whether anything can be kept (finding A07).
+  unsaved = !written;
+  if (lost !== !written) {
+    lost = !written;
+    if (sheetName === "start" || sheetName === "paused") refreshSheet(sheetName);
+  }
 }
 let beat = 0;      // ms since the last beat
 let dirty = true;  // the game screen needs drawing
@@ -93,6 +101,7 @@ let dirty = true;  // the game screen needs drawing
 // Every change of the game goes through here. Answers whether anything changed.
 // The state changes at once; what moves on the screen only follows it.
 function apply(fn, ...args) {
+  if (broken) return false;
   const before = game;
   const after = fn(before, ...args);
   if (after === before) return false;
@@ -254,6 +263,7 @@ function endGame() {
 
 // A new game starts the tune from the top.
 function startGame() {
+  if (broken) return;
   clearTimeout(overTimer);
   glide = null;
   fading = null;
@@ -261,7 +271,6 @@ function startGame() {
   levelUp = -Infinity;
   best = Math.max(best, game.score);
   game = newGame(newSeed());
-  started = true;
   mine = true;
   falling++;
   beat = 0;
@@ -273,7 +282,11 @@ function startGame() {
 }
 
 // A resume made by the player plays its blip, and the tune goes on from the bar it stopped in.
+// A page that has not played goes on with the game that is kept now: another page of the game may
+// have kept a newer one since this page loaded, and the browser may not have said so yet.
 function resumeGame() {
+  if (broken) return;
+  if (!mine) takeGame();
   hideSheet();
   if (apply(resume)) {
     sound("resume");
@@ -294,7 +307,6 @@ function pauseGame(byPlayer = true) {
 
 // The Play button of the panels a visit starts with.
 function play() {
-  started = true;
   resumeGame();
 }
 
@@ -305,15 +317,16 @@ function markSeen() {
   persist();
 }
 
-// Steering does nothing while a panel is open; the key then stays with the browser.
+// Steering does nothing while a panel is open, or after a fault; the key then stays with the browser.
 function steer(fn, ...args) {
-  if (sheetName) return false;
+  if (sheetName || broken) return false;
   apply(fn, ...args);
   return true;
 }
 
 // The pause button, P and Escape: pause, resume, or one step back out of a help.
 function pauseKey() {
+  if (broken) return false;
   if (!sheetName) pauseGame();
   else if (sheetName === "paused") resumeGame();
   else if (sheetFrom) showSheet(sheetFrom);
@@ -328,11 +341,15 @@ const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
 const isDark = () => dark ?? systemDark.matches;
 
 // The player's choice sets a class on the root that wins over the system's setting.
-function setDark(value) {
-  dark = value;
+function showSide() {
   root.classList.toggle("dark", dark === true);
   root.classList.toggle("light", dark === false);
   redrawAll();
+}
+
+function setDark(value) {
+  dark = value;
+  showSide();
   persist();
 }
 
@@ -742,6 +759,7 @@ const versionLine = () => pixelLine(`${T.versionLabel} ${T.version}`, { small: t
 let titleHost = null;       // the title that is on the screen, if any
 let titleStart = -Infinity; // when it showed
 let titleSub = 0;           // one small pixel of it in device pixels, as its panel allows (fitTitle)
+let steady = false;         // the open menu is being built again as it is: its title stays where it stands
 
 // Behind the title a couple of the game's own pieces fall, square by square, in quieter tones: they
 // say what the game is about, and the name stays easy to read. With "reduce motion" on they stand still.
@@ -811,9 +829,11 @@ function titleArt(small = false) {
   const node = el("h2", `title-art${small ? " small" : ""}`);
   node.append(el("span", "sr-only", T.name));
   titleHost = node;
-  titleStart = performance.now();
-  rain = null;
-  rainAt = titleStart;
+  if (!steady) {
+    titleStart = performance.now();
+    rain = null;
+    rainAt = titleStart;
+  }
   return withCanvas(node, (ctx, w, h) => {
     // A square of the rain is as wide as a stroke of the title's letters: four of its small pixels.
     const sub = titleSub || titleScale(w, h, T.nameLines);
@@ -850,6 +870,9 @@ function fitTitle() {
 // The best score, in both menus, once there is one.
 const bestLine = () => (best > 0 ? [pixelLine(`${T.best} ${thousands(best)}`, { small: true })] : []);
 
+// When nothing can be kept, both menus say so in one plain line (finding A07).
+const unkeptLine = () => (lost ? [sentence(T.unkept, "words spaced")] : []);
+
 const SHEETS = {
   // What a visit starts with once "How to play" has been seen.
   start(column) {
@@ -859,6 +882,7 @@ const SHEETS = {
       menuKey(T.play, play, { primary: true }).button,
       ...switches(),
       ...helps("start"),
+      ...unkeptLine(),
       versionLine(),
     );
     return T.name;
@@ -890,6 +914,7 @@ const SHEETS = {
       fresh.button,
       ...switches(),
       ...helps("paused"),
+      ...unkeptLine(),
       versionLine(),
     );
     return T.paused;
@@ -987,6 +1012,7 @@ function showSheet(name, from = null) {
   sheetBody.replaceChildren(column);
   sheetBody.scrollTop = 0;
   sheet.hidden = false;
+  shownMenu = menuShows(name);
   fitTitle();
   paintAll();
   // The keyboard starts on the button the panel wants pressed first.
@@ -1000,6 +1026,82 @@ function hideSheet() {
   sheet.hidden = true;
   sheetBody.replaceChildren();
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+}
+
+// What a menu shows, in short: its name, the best score, the switches, the line on keeping, and
+// whether New game asks first.
+const menuShows = (name) => JSON.stringify([name, best, music, sounds, isDark(), lost, game.score > 0 || game.well.some((row) => row.some((v) => v !== 0))]);
+let shownMenu = "";  // what the open panel showed when it was built
+
+// Builds the open menu again, as `name`, with what is known now, but only when that has changed: a
+// press on a button that a rebuild would have changed nothing on is never lost. The focus stays on
+// the button it was on, and a title that is already on the screen stays where it stands.
+function refreshSheet(name) {
+  if (name === sheetName && menuShows(name) === shownMenu) return;
+  const focused = sheet.contains(document.activeElement) ? document.activeElement.getAttribute("aria-label") : null;
+  steady = name === sheetName;
+  try {
+    showSheet(name);
+  } finally {
+    steady = false;
+  }
+  if (focused) [...sheet.querySelectorAll("button")].find((button) => button.getAttribute("aria-label") === focused)?.focus({ preventScroll: true });
+}
+
+// ---------- Another open page of the game ----------
+
+// The page holds the game that is kept now, paused, or a new game when none is kept. Answers whether
+// a game is kept.
+function takeGame() {
+  const back = broughtBack(load(storage).game);
+  game = back ?? pause(newGame(newSeed()));
+  glide = null;
+  fading = null;
+  pressing = null;
+  levelUp = -Infinity;
+  falling++;
+  dirty = true;
+  return back !== null;
+}
+
+// Another page of the game has kept something: the browser says so with a storage event (finding
+// A06). The side, the two sound switches, the best score and "How to play" seen are taken over as
+// they are kept now, so that this page never writes its older switches over newer ones. A page that
+// has not played takes over the game in progress too, and its menu shows that game, paused: its Play
+// goes on with it instead of putting an older game in its place. So does a page whose game is over
+// once another page keeps one in progress: its New game then asks first, as over any game to lose.
+function takeOver() {
+  if (broken) return;
+  const there = load(storage);
+  best = Math.max(best, there.best);
+  seen = seen || there.seen;
+  if (there.music !== music) {
+    music = there.music;
+    setMusic(music);
+  }
+  if (there.sounds !== sounds) {
+    sounds = there.sounds;
+    setSounds(sounds);
+  }
+  if (there.dark !== dark) {
+    dark = there.dark;
+    showSide();
+  }
+  if (!mine) {
+    const menu = takeGame() ? "paused" : "start";
+    tellStatus();
+    if (sheetFrom === "start" || sheetFrom === "paused") sheetFrom = menu;
+    if (sheetName === "start" || sheetName === "paused") refreshSheet(menu);
+  } else if (game.status === "over" && broughtBack(there.game)) {
+    // The game that is kept is now this page's to show, not its own to write: it has not played it.
+    clearTimeout(overTimer);
+    mine = false;
+    takeGame();
+    tellStatus();
+    showSheet("paused");
+  } else if (sheetName === "paused") {
+    refreshSheet("paused");
+  }
 }
 
 // The line round the button that has the focus shows only while the keys are in use: a key marks
@@ -1023,111 +1125,175 @@ sheet.addEventListener("keydown", (event) => {
   keys[to].focus();
 });
 
+// ---------- The safety net ----------
+
+// A fault in the game's own code never leaves a frozen picture with the tune going on, nor an empty
+// page (finding A08). The game stops where it is, everything falls silent, and one plain line says
+// so over the page, in the phone's own typeface: the drawing may be what failed. What was kept is
+// left alone, so a reload brings back the game as it was last saved, paused. The fault itself goes
+// to the console only, never to the screen.
+function fault(error) {
+  if (broken) return;
+  broken = true;
+  console.error(error);
+  try {
+    if (game.status === "playing") game = pause(game);
+  } catch {
+    // The game stays as it was: nothing plays it any more.
+  }
+  stopMusic();
+  rest();  // every effect falls silent too, and out of sight the sound engine rests
+  const line = el("p", "fault", T.fault);
+  line.setAttribute("role", "alert");
+  document.body.append(line);
+  // Nothing under the line takes a press or the focus any more.
+  document.querySelector("main")?.setAttribute("inert", "");
+}
+
+// A redraw that the browser asks for (a new size, sharpness or side) has the same safety net.
+const guarded = (fn) => (...args) => {
+  if (broken) return undefined;
+  try {
+    return fn(...args);
+  } catch (error) {
+    fault(error);
+    return undefined;
+  }
+};
+
 // ---------- The loop ----------
 
 let last = 0;
 const FRAME_GAP = 1000;  // ms between two frames after which the game counts as having been out of sight
 
 function frame(now) {
-  // No frame for more than a second: the page was not being drawn, though nobody said so (a host
-  // can hide a page without telling it). The game pauses, as it does when it leaves the screen.
-  if (last && now - last > FRAME_GAP && game.status === "playing") pauseGame(false);
-  // A long gap between two frames counts as a short one: the piece never jumps rows.
-  const passed = last ? Math.min(now - last, 100) : 0;
-  last = now;
-  alive();
-  if (game.status === "playing") {
-    beat += passed;
-    const length = interval(game.level);
-    if (beat >= length) {
-      beat -= length;
-      apply(tick);
+  if (broken) return;
+  try {
+    // No frame for more than a second: the page was not being drawn, though nobody said so (a host
+    // can hide a page without telling it). The game pauses, as it does when it leaves the screen.
+    if (last && now - last > FRAME_GAP && game.status === "playing") pauseGame(false);
+    // A long gap between two frames counts as a short one: the piece never jumps rows.
+    const passed = last ? Math.min(now - last, 100) : 0;
+    last = now;
+    alive();
+    if (game.status === "playing") {
+      beat += passed;
+      const length = interval(game.level);
+      if (beat >= length) {
+        beat -= length;
+        apply(tick);
+      }
     }
-  }
-  // The title's last line falls into place: its canvas is drawn again until every sign has landed.
-  if (titleHost && titleHost.isConnected) {
-    const falling = motion.rain > 0 && now - rainAt >= motion.rain;
-    if (falling) {
-      rainAt = now;
-      stepRain();
+    // The title's last line falls into place: its canvas is drawn again until every sign has landed.
+    if (titleHost && titleHost.isConnected) {
+      const falling = motion.rain > 0 && now - rainAt >= motion.rain;
+      if (falling) {
+        rainAt = now;
+        stepRain();
+      }
+      if (falling || now - titleStart <= motion.title + 40) paint(titleHost);
     }
-    if (falling || now - titleStart <= motion.title + 40) paint(titleHost);
-  }
-  // While something moves, every frame is drawn.
-  if (moving(now)) dirty = true;
-  if (dirty) {
-    dirty = false;
-    draw(now);
+    // While something moves, every frame is drawn.
+    if (moving(now)) dirty = true;
+    if (dirty) {
+      dirty = false;
+      draw(now);
+    }
+  } catch (error) {
+    // A fault while the game is played or drawn: the safety net, and no more frames.
+    fault(error);
+    return;
   }
   requestAnimationFrame(frame);
 }
 
 // ---------- Start ----------
 
-byId("name").textContent = T.name;
-screen.setAttribute("aria-label", T.field);
-byId("keys").setAttribute("aria-label", T.steering);
-for (const button of gameButtons) button.setAttribute("aria-label", T.buttons[button.dataset.act]);
+// A fault while starting, as in a browser too old for the game, shows the plain line of the safety
+// net instead of an empty page.
+try {
+  byId("name").textContent = T.name;
+  screen.setAttribute("aria-label", T.field);
+  byId("keys").setAttribute("aria-label", T.steering);
+  for (const button of gameButtons) button.setAttribute("aria-label", T.buttons[button.dataset.act]);
 
-startInput({
-  actions: {
-    left: () => steer(move, -1),
-    right: () => steer(move, 1),
-    down: () => steer(softDrop),
-    turn: () => steer(rotate),
-    drop: () => steer(hardDrop),
-    pause: pauseKey,
-  },
-  // The five steering buttons and the pause button.
-  buttons: gameButtons.map((element) => ({ element, act: element.dataset.act })),
-  press: setPressed,
-  // A finger on the panel below the header steers too.
-  strokes: { element: panel, top: () => wellArea.getBoundingClientRect().top - 1, open: () => !sheetName, piece: () => falling },
-  squareSize: () => (geo ? geo.cell / geo.ratio : 32),
-  unlock,
-});
+  startInput({
+    actions: {
+      left: () => steer(move, -1),
+      right: () => steer(move, 1),
+      down: () => steer(softDrop),
+      turn: () => steer(rotate),
+      drop: () => steer(hardDrop),
+      pause: pauseKey,
+    },
+    // The five steering buttons and the pause button.
+    buttons: gameButtons.map((element) => ({ element, act: element.dataset.act })),
+    press: setPressed,
+    // A finger on the panel below the header steers too.
+    strokes: { element: panel, top: () => wellArea.getBoundingClientRect().top - 1, open: () => !sheetName, piece: () => falling },
+    squareSize: () => (geo ? geo.cell / geo.ratio : 32),
+    unlock,
+  });
 
-// The game pauses by itself when the page goes out of sight, and the sound rests.
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) return;
-  pauseGame(false);
-  rest();
-});
+  // The game pauses by itself when the page goes out of sight, and the sound rests.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) return;
+    pauseGame(false);
+    rest();
+  });
 
-// Whatever closes the page, the game as it stands is kept. A page that has changed nothing writes
-// nothing: it would only undo what another page of the game has saved.
-window.addEventListener("pagehide", () => {
-  if (unsaved) persist();
-});
+  // It pauses by itself too when its window loses the keyboard while it stays on the screen: on a
+  // PC, a click on another window, after which the keys no longer reach the game (finding A03).
+  window.addEventListener("blur", (event) => {
+    if (event.target === window) pauseGame(false);
+  });
 
-// Draw again when the screen changes size, sharpness or side.
-new ResizeObserver(redrawAll).observe(panel);
-new ResizeObserver(redrawAll).observe(wellArea);
-systemDark.addEventListener("change", redrawAll);
-// "Reduce motion" may be switched while the game is open: by the system, or by the mark on the root.
-window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", readLook);
-new MutationObserver(readLook).observe(root, { attributes: true, attributeFilter: ["data-motion"] });
-(function watchRatio() {
-  window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`).addEventListener("change", () => {
-    redrawAll();
-    watchRatio();
-  }, { once: true });
-})();
+  // Whatever closes the page, the game as it stands is kept. A page that has changed nothing writes
+  // nothing: it would only undo what another page of the game has saved.
+  window.addEventListener("pagehide", () => {
+    if (unsaved) persist();
+  });
 
-// What was kept comes back: the side, the switches, and the game, which waits paused.
-root.classList.toggle("dark", dark === true);
-root.classList.toggle("light", dark === false);
-setMusic(music);
-setSounds(sounds);
-redrawAll();
-tellStatus();
-// A visit starts with the game that was in progress, or with "How to play" until it has been
-// closed once, and with the menu after that.
-showSheet(restored ? "paused" : seen ? "start" : "how");
-requestAnimationFrame(frame);
+  // Another page of the game has kept something (finding A06).
+  window.addEventListener("storage", (event) => {
+    if (event.storageArea === storage && event.key === KEY && event.newValue !== null) takeOver();
+  });
 
-// Playing without internet: a worker keeps every file of the game (sw.js).
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  // Draw again when the screen changes size, sharpness or side.
+  new ResizeObserver(guarded(redrawAll)).observe(panel);
+  new ResizeObserver(guarded(redrawAll)).observe(wellArea);
+  systemDark.addEventListener("change", guarded(redrawAll));
+  // "Reduce motion" may be switched while the game is open: by the system, or by the mark on the root.
+  window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", guarded(readLook));
+  new MutationObserver(guarded(readLook)).observe(root, { attributes: true, attributeFilter: ["data-motion"] });
+  (function watchRatio() {
+    window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`).addEventListener("change", guarded(() => {
+      redrawAll();
+      watchRatio();
+    }), { once: true });
+  })();
+
+  // What was kept comes back: the side, the switches, and the game, which waits paused.
+  setMusic(music);
+  setSounds(sounds);
+  showSide();
+  tellStatus();
+  // A visit starts with the game that was in progress, or with "How to play" until it has been
+  // closed once, and with the menu after that.
+  showSheet(restored ? "paused" : seen ? "start" : "how");
+  requestAnimationFrame(frame);
+} catch (error) {
+  fault(error);
+}
+
+// Playing without internet: a worker keeps every file of the game (sw.js). Where a page may not have
+// one, as in a frame of another site that is closed off, even asking for it fails: the game plays all
+// the same, only not without internet. That is no fault of the game's own code.
+try {
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+} catch {
+  // No worker: nothing else changes.
+}
 
 // For the checks: a look at the game from the preview's script tool, through import("./app.js").
 export const check = {

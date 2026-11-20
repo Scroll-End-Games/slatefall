@@ -508,3 +508,21 @@ body::before {
   background: var(--page);
   color: var(--text);
 }
+
+/* A fault in the game's own code: one plain line over the whole page (app.js, the safety net). It
+   leaves the strip under an iPhone's status bar uncovered, so that the bar's white signs stay readable. */
+.fault {
+  position: fixed;
+  inset: var(--inset-top) 0 0;
+  z-index: 1;
+  margin: 0;
+  padding:
+    calc(var(--pad) * 3)
+    calc(var(--pad) * 3 + var(--inset-right))
+    calc(var(--pad) * 3 + var(--inset-bottom))
+    calc(var(--pad) * 3 + var(--inset-left));
+  background: var(--page);
+  color: var(--text);
+  font-size: var(--words);
+  line-height: var(--leading);
+}
