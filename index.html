@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Slatefall</title>
+<meta name="description" content="A retro falling-block game for one player.">
+<meta name="color-scheme" content="light dark">
+<!-- The colour of the browser's own bars: the page colour of each side. app.js keeps it in step with the side in use. -->
+<meta name="theme-color" content="#D8DDDC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1317" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<!-- For the home screen of an iPhone -->
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slatefall">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<main class="page">
+  <!-- The name of the game, for screen readers: app.js writes it from texts.js. -->
+  <h1 class="sr-only" id="name"></h1>
+  <section class="panel" id="panel">
+    <canvas class="pixels screen" id="screen" role="img"></canvas>
+    <div class="header">
+      <button class="key pause" id="pause" type="button" tabindex="-1" data-act="pause" data-icon="pause"><canvas class="pixels" aria-hidden="true"></canvas></button>
+    </div>
+    <div class="well-area" id="well-area"></div>
+    <p class="sr-only" id="status" role="status"></p>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden>
+      <canvas class="pixels" aria-hidden="true"></canvas>
+      <div class="sheet-body" id="sheet-body"></div>
+    </div>
+  </section>
+  <div class="keys" id="keys" role="group">
+    <button class="key" type="button" tabindex="-1" data-act="left" data-icon="left"><canvas class="pixels" aria-hidden="true"></canvas></button>
+    <button class="key" type="button" tabindex="-1" data-act="right" data-icon="right"><canvas class="pixels" aria-hidden="true"></canvas></button>
+    <button class="key" type="button" tabindex="-1" data-act="down" data-icon="down"><canvas class="pixels" aria-hidden="true"></canvas></button>
+    <button class="key" type="button" tabindex="-1" data-act="drop" data-icon="drop"><canvas class="pixels" aria-hidden="true"></canvas></button>
+    <button class="key" type="button" tabindex="-1" data-act="turn" data-icon="turn"><canvas class="pixels" aria-hidden="true"></canvas></button>
+  </div>
+</main>
+<noscript><p class="noscript">Slatefall needs JavaScript to run.</p></noscript>
+</body>
+</html>

@@ -1,0 +1,510 @@
+/* Slatefall: the look (design v1.1, sections 6 and 8).
+   Every colour, size, corner and shadow below comes from the variables in this first block.
+   The canvases read their colours and sizes from them too. */
+:root {
+  /* Slate, the light side */
+  --light-page: #D8DDDC;
+  --light-screen: #C2D1D7;
+  --light-well: #C2D1D7;
+  --light-grid: #A9BCC4;
+  --light-frame: #1E2D36;
+  --light-text: #1E2D36;
+  --light-key: #E7EAE9;
+  --light-edge: #8E999C;
+  --light-icon: #1E2D36;
+  --light-tone-1: #9DB2BC;
+  --light-tone-2: #5E7785;
+  --light-tone-3: #1E2D36;
+  --light-line: #1E2D36;
+  --light-strip: #1E2D36;  /* under an iPhone's status bar, whose signs are white: the text colour */
+  /* The title's letters: the line round them, their face above and below, the glint on their top edges, their shadow */
+  --light-title-line: var(--light-tone-3);
+  --light-title-top: var(--light-tone-1);
+  --light-title-bottom: var(--light-tone-2);
+  --light-title-glint: var(--light-key);
+  --light-title-shade: var(--light-edge);
+  /* The pieces that fall behind the title wear the three tones one step nearer to the screen, so the name stays clear */
+  --light-far-1: var(--light-grid);
+  --light-far-2: var(--light-tone-1);
+  --light-far-3: var(--light-tone-2);
+
+  /* Slate, the dark side */
+  --dark-page: #0E1317;
+  --dark-screen: #15222A;
+  --dark-well: #15222A;
+  --dark-grid: #22363F;
+  --dark-frame: #5B8191;
+  --dark-text: #C4DDE7;
+  --dark-key: #1F2C34;
+  --dark-edge: #070A0C;
+  --dark-icon: #C4DDE7;
+  --dark-tone-1: #A9C7D3;
+  --dark-tone-2: #5B8191;
+  --dark-tone-3: #0A1115;
+  --dark-line: #A9C7D3;
+  --dark-strip: #0E1317;   /* under an iPhone's status bar: the page colour */
+  --dark-title-line: var(--dark-tone-3);
+  --dark-title-top: var(--dark-tone-1);
+  --dark-title-bottom: var(--dark-tone-2);
+  --dark-title-glint: var(--dark-text);
+  --dark-title-shade: var(--dark-edge);
+  --dark-far-1: var(--dark-tone-2);
+  --dark-far-2: var(--dark-grid);
+  --dark-far-3: var(--dark-tone-3);
+
+  /* The side in use: light, unless the system or the player says dark (see below) */
+  --page: var(--light-page);
+  --screen: var(--light-screen);
+  --well: var(--light-well);
+  --grid: var(--light-grid);
+  --frame: var(--light-frame);
+  --text: var(--light-text);
+  --key: var(--light-key);
+  --edge: var(--light-edge);
+  --icon: var(--light-icon);
+  --tone-1: var(--light-tone-1);
+  --tone-2: var(--light-tone-2);
+  --tone-3: var(--light-tone-3);
+  --line: var(--light-line);
+  --strip: var(--light-strip);
+  --title-line: var(--light-title-line);
+  --title-top: var(--light-title-top);
+  --title-bottom: var(--light-title-bottom);
+  --title-glint: var(--light-title-glint);
+  --title-shade: var(--light-title-shade);
+  --far-1: var(--light-far-1);
+  --far-2: var(--light-far-2);
+  --far-3: var(--light-far-3);
+
+  /* Sizes, in CSS pixels */
+  --column: 480px;  /* the widest the game gets */
+  --pad: 8px;       /* round the page, added to the safe-area insets */
+  --gap: 8px;       /* under the header, and between the panel and the buttons */
+  --header: 64px;   /* the height of the header */
+  --inner: 12px;    /* from the panel's edges to what the header holds */
+  --part-gap: 16px; /* between the parts of the header */
+  --label-gap: 5px; /* between a small label and what stands under it */
+  --margin: 4px;    /* from the panel's edges to the well area */
+  --keys: 64px;     /* the height of the five steering buttons */
+  --pause: 44px;    /* the pause button */
+  --px: 3px;        /* one pixel of the buttons, their pictures and the numbers */
+  --dot: 2px;       /* one dot of the small labels, and one art pixel of the next piece */
+  --lift: 4px;      /* how far a button's face stands above its lower edge */
+  --menu: 320px;    /* the widest a panel's column of buttons gets */
+  --menu-key: 48px; /* the height of a button in a panel */
+  --sheet-pad: 16px; /* round what a panel holds */
+  --words: 16px;    /* the size of a sentence */
+  --leading: 1.4;   /* the height of its lines, in sizes of the sentence */
+  --weight: 500;    /* how heavy a sentence is written */
+  --strong: 700;    /* and a word that stands out in it */
+  --ring: 3px;      /* the line round a button that has the keyboard's focus */
+  --title-high: 184px;       /* the most room the title takes in the menu a visit starts with: 46 small pixels of 4 px */
+  --title-high-small: 115px; /* and above "How to play" at the first start: 46 of 2.5 px */
+
+  /* How long things take to move. With "reduce motion" on, all of them are 0 (see below) */
+  --glide: 60ms;     /* the falling piece, from square to square */
+  --fade: 180ms;     /* a full row, before the rows above come down */
+  --press: 90ms;     /* a piece that settles gives a short press */
+  --level-up: 900ms; /* a new level stays marked in the header */
+  --over: 400ms;     /* the last piece stands before the Game over panel shows */
+  --sheet-in: 120ms; /* a panel fades in */
+  --title: 480ms;    /* the last line of the title falls into place */
+  --rain: 420ms;     /* the pieces behind the title fall one square */
+
+  /* The safe-area insets, as properties so that a check can set them by hand */
+  --inset-top: env(safe-area-inset-top, 0px);
+  --inset-right: env(safe-area-inset-right, 0px);
+  --inset-bottom: env(safe-area-inset-bottom, 0px);
+  --inset-left: env(safe-area-inset-left, 0px);
+
+  /* Sentences are in the phone's own typeface; numbers and short words are pixel lettering */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  color-scheme: light;
+}
+
+/* The dark side: when the system asks for it and the player has not chosen light ... */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --page: var(--dark-page);
+    --screen: var(--dark-screen);
+    --well: var(--dark-well);
+    --grid: var(--dark-grid);
+    --frame: var(--dark-frame);
+    --text: var(--dark-text);
+    --key: var(--dark-key);
+    --edge: var(--dark-edge);
+    --icon: var(--dark-icon);
+    --tone-1: var(--dark-tone-1);
+    --tone-2: var(--dark-tone-2);
+    --tone-3: var(--dark-tone-3);
+    --line: var(--dark-line);
+    --strip: var(--dark-strip);
+    --title-line: var(--dark-title-line);
+    --title-top: var(--dark-title-top);
+    --title-bottom: var(--dark-title-bottom);
+    --title-glint: var(--dark-title-glint);
+    --title-shade: var(--dark-title-shade);
+    --far-1: var(--dark-far-1);
+    --far-2: var(--dark-far-2);
+    --far-3: var(--dark-far-3);
+    color-scheme: dark;
+  }
+}
+
+/* ... and when the player has chosen dark. */
+:root.dark {
+  --page: var(--dark-page);
+  --screen: var(--dark-screen);
+  --well: var(--dark-well);
+  --grid: var(--dark-grid);
+  --frame: var(--dark-frame);
+  --text: var(--dark-text);
+  --key: var(--dark-key);
+  --edge: var(--dark-edge);
+  --icon: var(--dark-icon);
+  --tone-1: var(--dark-tone-1);
+  --tone-2: var(--dark-tone-2);
+  --tone-3: var(--dark-tone-3);
+  --line: var(--dark-line);
+  --strip: var(--dark-strip);
+  --title-line: var(--dark-title-line);
+  --title-top: var(--dark-title-top);
+  --title-bottom: var(--dark-title-bottom);
+  --title-glint: var(--dark-title-glint);
+  --title-shade: var(--dark-title-shade);
+  --far-1: var(--dark-far-1);
+  --far-2: var(--dark-far-2);
+  --far-3: var(--dark-far-3);
+  color-scheme: dark;
+}
+
+/* With "reduce motion" on, every effect is instant: by the system's setting, or by a mark on the root. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --glide: 0ms;
+    --fade: 0ms;
+    --press: 0ms;
+    --level-up: 0ms;
+    --over: 0ms;
+    --sheet-in: 0ms;
+    --title: 0ms;
+    --rain: 0ms;
+  }
+}
+
+:root[data-motion="reduce"] {
+  --glide: 0ms;
+  --fade: 0ms;
+  --press: 0ms;
+  --level-up: 0ms;
+  --over: 0ms;
+  --sheet-in: 0ms;
+  --title: 0ms;
+  --rain: 0ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* The page itself never scrolls, selects or zooms: every touch belongs to the game. */
+html,
+body {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html {
+  background: var(--page);
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  font-weight: var(--weight);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* From an iPhone's home screen the page runs under the status bar. The strip there is painted
+   dark on both sides, so that the bar's white signs stay readable. Elsewhere it has no height. */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--inset-top);
+  background: var(--strip);
+  pointer-events: none;
+}
+
+/* One column: the screen panel, then the row of steering buttons. */
+.page {
+  height: 100vh;
+  height: 100dvh;
+  max-width: var(--column);
+  margin: 0 auto;
+  padding:
+    calc(var(--pad) + var(--inset-top))
+    calc(var(--pad) + var(--inset-right))
+    calc(var(--pad) + var(--inset-bottom))
+    calc(var(--pad) + var(--inset-left));
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* Pixel art is never smoothed. */
+.pixels {
+  display: block;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+}
+
+/* The screen panel: the header, a gap, the well area. One canvas draws all of it. */
+.panel {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* app.js lays every canvas on whole device pixels inside the box that holds it. */
+.screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.header {
+  position: relative;
+  flex: none;
+  height: var(--header);
+}
+
+.well-area {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: var(--gap) var(--margin) var(--margin);
+}
+
+/* A button: a real button, see-through, with its face drawn on the canvas it holds. */
+.key {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.key canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pause {
+  position: absolute;
+  top: calc((var(--header) - var(--pause)) / 2);
+  right: var(--inner);
+  width: var(--pause);
+  height: var(--pause);
+}
+
+/* The five steering buttons share the width, a gap apart. */
+.keys {
+  flex: none;
+  height: var(--keys);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+/* A panel: Paused, Game over, How to play, the help for the home screen. It lies on the screen
+   panel and covers it; app.js fills it and paints its ground, its lettering and its buttons. */
+.sheet {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  animation: sheet-in var(--sheet-in) ease-out both;
+}
+
+/* Outside the canvases only opacity and transform ever move. */
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sheet[hidden] {
+  display: none;
+}
+
+.sheet > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* What a panel holds may scroll when the screen is too low for it. */
+.sheet-body {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sheet-pad);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.sheet-column {
+  width: 100%;
+  max-width: var(--menu);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* A line of pixel lettering: app.js draws it on the canvas; the words themselves are there for screen readers. */
+/* A line is a little higher than its seven dots: on some screens a dot is drawn a little larger. */
+.pixel-line {
+  position: relative;
+  flex: none;
+  margin: 0;
+  height: calc(8 * var(--px));
+}
+
+.pixel-line.small {
+  height: calc(9 * var(--dot));
+}
+
+.pixel-line.title {
+  margin-bottom: var(--gap);
+}
+
+.pixel-line.foot {
+  margin-top: var(--gap);
+}
+
+.pixel-line canvas,
+.title-art canvas,
+.how-picture canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The title: the game's name, large, on the panel a visit starts with. app.js draws it on its canvas. */
+.title-art {
+  position: relative;
+  flex: none;
+  margin: 0 0 var(--gap);
+  height: var(--title-high);
+}
+
+.title-art.small {
+  height: var(--title-high-small);
+}
+
+/* A button in a panel. */
+.key.wide {
+  flex: none;
+  width: 100%;
+  height: var(--menu-key);
+  touch-action: pan-y;
+}
+
+.key:focus {
+  outline: none;
+}
+
+/* The line round the button that has the focus. It shows only while the keys are in use:
+   app.js marks the root at a key and takes the mark away at a finger or the mouse. */
+:root[data-keys] .key:focus {
+  outline: var(--ring) solid var(--text);
+  outline-offset: var(--ring);
+}
+
+/* Sentences. */
+.words {
+  margin: 0;
+  font-size: var(--words);
+  line-height: var(--leading);
+  font-weight: var(--weight);
+  color: var(--text);
+}
+
+.words strong {
+  font-weight: var(--strong);
+}
+
+/* How to play: a small picture, then its line. */
+.how-row {
+  display: grid;
+  grid-template-columns: calc(32 * var(--dot)) minmax(0, 1fr);
+  gap: calc(var(--gap) * 1.5);
+  align-items: center;
+}
+
+.how-picture {
+  position: relative;
+  height: calc(16 * var(--dot));
+}
+
+.spaced {
+  margin-top: var(--gap);
+}
+
+/* For screen readers only. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.noscript {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: calc(var(--pad) * 3);
+  background: var(--page);
+  color: var(--text);
+}
