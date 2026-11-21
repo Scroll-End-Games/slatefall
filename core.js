@@ -1,4 +1,4 @@
-// The rules of Slatefall as plain functions (design v1.1, sections 3 to 5).
+// The rules of Slatefall as plain functions (design v1.2, sections 3 to 5).
 // No screen code, no document, no window, no clock. Nothing is imported.
 // A game is one plain object; no function changes it in place.
 

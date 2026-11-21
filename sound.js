@@ -1,4 +1,4 @@
-// The sounds of Slatefall (design v1.1, section 10): every sound is made here, with the
+// The sounds of Slatefall (design v1.2, section 10): every sound is made here, with the
 // browser's own Web Audio, from notes written in this file. No sound files, nothing imported.
 // The voices are those of an old handheld, made clean: two pulse voices, a triangle and noise.
 // Every effect is our own; none is taken from another game.
@@ -157,8 +157,10 @@ const DRUMS = PROGRESSION.map((name, bar) => {
 
 // How each voice sounds: its wave, its peak level, how much of its length a note sounds for,
 // and the share of its level left at its end. The levels leave room for the effects under 0.5.
+// The lead plays its notes one octave lower than written (shift, in semitones): high up, where it
+// was first written, it tired the ear after a while (21 November 2026).
 const VOICES = {
-  lead: { bars: LEAD, v: "p25", g: 0.065, hold: 1, fade: 0.7 },
+  lead: { bars: LEAD, v: "p25", g: 0.065, hold: 1, fade: 0.7, shift: -12 },
   harmony: { bars: HARMONY, v: "p12", g: 0.038, hold: 0.6, fade: 0.5 },
   bass: { bars: BASS, v: "tri", g: 0.075, hold: 0.92, fade: 0.85 },
 };
@@ -171,7 +173,7 @@ function buildTune(withDrums) {
     voice.bars.forEach((bar, index) => {
       let step = 0;
       for (const [pitch, length] of bar) {
-        if (pitch) notes.push({ v: voice.v, f: hz(pitch), t: index * BAR + step * STEP, d: length * STEP * voice.hold, g: voice.g, fade: voice.fade });
+        if (pitch) notes.push({ v: voice.v, f: hz(pitch + (voice.shift ?? 0)), t: index * BAR + step * STEP, d: length * STEP * voice.hold, g: voice.g, fade: voice.fade });
         step += length;
       }
     });
@@ -303,18 +305,19 @@ export function renderEffect(ac, name, at = 0, option) {
 }
 
 // Schedules the tune on any context from the moment `at`, straight into its music gain:
-// `rounds` times in a row, with or without the drums; or only `count` bars from bar `first` on.
-// For measuring it in an OfflineAudioContext. Answers the length of what it scheduled in s.
-export function renderTune(ac, at = 0, { rounds = 1, drums = true, first = 0, count = BARS } = {}) {
+// `rounds` times in a row, with or without the drums; or only `count` bars from bar `first` on;
+// at the pace `pace` (paceOf). For measuring it in an OfflineAudioContext. Answers the length of
+// what it scheduled in s.
+export function renderTune(ac, at = 0, { rounds = 1, drums = true, first = 0, count = BARS, pace: p = 1 } = {}) {
   const rig = rigOf(ac);
   const from = first * BAR;
   const to = (first + count) * BAR;
   for (let round = 0; round < rounds; round++) {
     for (const note of tuneNotes(drums)) {
-      if (note.t >= from - 1e-9 && note.t < to - 1e-9) playNote(rig, rig.music, note, at + round * TUNE_LENGTH - from);
+      if (note.t >= from - 1e-9 && note.t < to - 1e-9) playNote(rig, rig.music, paced(note, p), at + (round * TUNE_LENGTH - from) / p);
     }
   }
-  return rounds > 1 ? rounds * TUNE_LENGTH : to - from;
+  return (rounds > 1 ? rounds * TUNE_LENGTH : to - from) / p;
 }
 
 // ---------- The game's own context ----------
@@ -450,12 +453,27 @@ export function setSounds(on) {
 const TIMER = 25;        // ms between two looks at what is due
 const LOOKAHEAD = 0.1;   // s of notes scheduled ahead on the audio clock, so the beat never stumbles
 
+// The tune plays a little faster as the levels go up (brief v1.3; design v1.2, section 10): 2 % at
+// each level above the first, up to level 12, where the pieces reach their fastest fall. A pace of 1
+// is that of level 1, 140 beats a minute; from level 12 on it is 1.22, about 171.
+const PACE_PERCENT = 2;
+const PACE_TOP = 12;
+export function paceOf(level) {
+  const n = Number.isFinite(level) ? Math.min(Math.max(Math.floor(level), 1), PACE_TOP) : 1;
+  return (100 + PACE_PERCENT * (n - 1)) / 100;
+}
+
+// A note at a pace: its start and its length shrink alike; its pitch stays.
+const paced = (note, p) => (p === 1 ? note : { ...note, t: note.t / p, d: note.d / p });
+
 let musicOn = true;      // the Music switch
 let wanted = false;      // the game is being played: the tune should sound
 let drawnAt = 0;         // when the game last drew a frame
 const FRAME_WAIT = 400;  // ms without a frame after which the tune falls silent: the game is not being shown
 let fromBar = 0;         // the bar the tune starts from the next time
-let tune = null;         // while it plays: { gain, sources, origin, index, timer }
+let pace = 1;            // the pace of the game's level (paceOf)
+let tune = null;         // while it plays: { gain, sources, origin, index, timer }; origin is the
+                         // moment on the audio clock where this round began, at the current pace
 
 // Schedules every note that starts within the look-ahead.
 function pump() {
@@ -470,14 +488,14 @@ function pump() {
   const now = context.currentTime;
   for (;;) {
     const note = notes[tune.index];
-    const at = tune.origin + note.t;
+    const at = tune.origin + note.t / pace;
     if (at > now + LOOKAHEAD) break;
     // A note whose moment has passed is left out, not played late.
-    if (at >= now - 0.02) tune.sources.push({ source: playNote(rig, tune.gain, note, tune.origin), end: at + note.d });
+    if (at >= now - 0.02) tune.sources.push({ source: playNote(rig, tune.gain, paced(note, pace), tune.origin), end: at + note.d / pace });
     tune.index++;
     if (tune.index >= notes.length) {
       tune.index = 0;
-      tune.origin += TUNE_LENGTH;
+      tune.origin += TUNE_LENGTH / pace;
     }
   }
   if (tune.sources.length > 64) tune.sources = tune.sources.filter((playing) => playing.end > now);
@@ -492,7 +510,7 @@ function runTune() {
   tune = {
     gain,
     sources: [],
-    origin: context.currentTime + 0.03 - start,
+    origin: context.currentTime + 0.03 - start / pace,
     index: Math.max(0, tuneNotes().findIndex((note) => note.t >= start - 1e-6)),
     timer: setInterval(pump, TIMER),
   };
@@ -506,7 +524,7 @@ function haltTune() {
   tune = null;
   clearInterval(stopped.timer);
   const now = context.currentTime;
-  const played = Math.max(0, now - stopped.origin);
+  const played = Math.max(0, now - stopped.origin) * pace;
   fromBar = Math.floor(played / BAR) % BARS;
   stopped.gain.gain.setValueAtTime(1, now);
   stopped.gain.gain.linearRampToValueAtTime(0, now + RAMP);
@@ -549,12 +567,32 @@ export function setMusic(on) {
   else haltTune();
 }
 
+// The game's level, with every frame and before the tune starts: the tune plays at that level's pace.
+// A change while it plays keeps its place: it goes on from where it is, at the new pace.
+export function setLevel(level) {
+  const next = paceOf(level);
+  if (next === pace) return;
+  if (tune) {
+    const now = context.currentTime;
+    const reached = (now - tune.origin) * pace;  // where the tune is, in its own time
+    tune.origin = now - reached / next;
+  }
+  pace = next;
+}
+
 // ---------- For the checks ----------
 
 // The bar of the tune that is sounding, counted from 0; -1 while the tune is not playing.
 export function tuneBar() {
   if (!tune) return -1;
-  return Math.floor(Math.max(0, context.currentTime - tune.origin) / BAR) % BARS;
+  return Math.floor((Math.max(0, context.currentTime - tune.origin) * pace) / BAR) % BARS;
+}
+
+// Where the tune is in its own time, in s from the top of its round (at the pace of level 1);
+// -1 while it is not playing. A check measures the pace with it.
+export function tuneAt() {
+  if (!tune) return -1;
+  return (Math.max(0, context.currentTime - tune.origin) * pace) % TUNE_LENGTH;
 }
 
 // "none" before the first unlock, otherwise the context's own state.

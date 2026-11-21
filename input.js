@@ -1,4 +1,4 @@
-// Buttons, fingers and keys, turned into calls (design v1.1, section 7).
+// Buttons, fingers and keys, turned into calls (design v1.2, section 7).
 // Nothing is imported: app.js hands over the functions to call. Nothing else reads them.
 
 // ---------- The numbers of section 7 ----------

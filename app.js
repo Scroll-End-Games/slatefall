@@ -1,4 +1,4 @@
-// Slatefall: the screen and the loop (design v1.1, sections 6, 7 and 9).
+// Slatefall: the screen and the loop (design v1.2, sections 6, 7 and 9).
 // Draws the state, keeps the beat, shows the panels, and hands buttons, fingers and keys to the rules.
 import {
   WIDTH, HEIGHT, cells, fits, newGame, move, rotate, softDrop, hardDrop, tick, landing, interval, pause, resume,
@@ -28,6 +28,7 @@ const setMusic = quiet(audio.setMusic);
 const startMusic = quiet(audio.startMusic);
 const stopMusic = quiet(audio.stopMusic);
 const alive = quiet(audio.alive);
+const setLevel = quiet(audio.setLevel);
 
 const root = document.documentElement;
 const byId = (id) => document.getElementById(id);
@@ -277,6 +278,7 @@ function startGame() {
   dirty = true;
   hideSheet();
   tellStatus();
+  setLevel(game.level);
   startMusic(true);
   persist();
 }
@@ -290,6 +292,7 @@ function resumeGame() {
   hideSheet();
   if (apply(resume)) {
     sound("resume");
+    setLevel(game.level);
     startMusic();
   }
   beat = 0;
@@ -1175,6 +1178,8 @@ function frame(now) {
     // A long gap between two frames counts as a short one: the piece never jumps rows.
     const passed = last ? Math.min(now - last, 100) : 0;
     last = now;
+    // The tune plays at the pace of the level (design section 10), and only while frames come.
+    setLevel(game.level);
     alive();
     if (game.status === "playing") {
       beat += passed;

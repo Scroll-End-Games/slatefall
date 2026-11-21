@@ -1,4 +1,4 @@
-// Saving and loading on the phone (design v1.1, section 9). Nothing is imported.
+// Saving and loading on the phone (design v1.2, section 9). Nothing is imported.
 // One entry holds everything: the best score, the light or dark choice, the two sound switches,
 // whether "How to play" has been closed once, and the game in progress.
 // Both functions stay harmless when the storage is missing, full or holds something broken.

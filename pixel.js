@@ -1,4 +1,4 @@
-// Pixel art for Slatefall (design v1.1, sections 6 and 8): our own pixel lettering,
+// Pixel art for Slatefall (design v1.2, sections 6 and 8): our own pixel lettering,
 // the pictures on the buttons, the tiles of the Slate look, and the functions that draw
 // them on a canvas. Everything here is given in whole device pixels. Nothing is imported.
 

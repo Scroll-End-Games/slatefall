@@ -1,4 +1,4 @@
-/* Slatefall: the look (design v1.1, sections 6 and 8).
+/* Slatefall: the look (design v1.2, sections 6 and 8).
    Every colour, size, corner and shadow below comes from the variables in this first block.
    The canvases read their colours and sizes from them too. */
 :root {

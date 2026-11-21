@@ -1,11 +1,11 @@
-// Playing without internet (design v1.1, sections 2 and 9): this worker keeps every file of the
+// Playing without internet (design v1.2, sections 2 and 9): this worker keeps every file of the
 // game in a cache and answers from it first.
 // A phone fetches the game anew only when this file itself has changed. So the cache carries two
 // things in its name: the version of texts.js, and the mark of the files listed below.
 // test/offline.test.js works that mark out from the files and fails until it stands here: any
 // change to a file of the game then changes this file too, and phones stop showing the old game.
-const VERSION = "0.1.1";
-const STAMP = "29c9e029";
+const VERSION = "0.1.2";
+const STAMP = "f5a6167c";
 const CACHE = `slatefall-${VERSION}-${STAMP}`;
 
 // Every file the browser gets.
