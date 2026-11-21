@@ -1,4 +1,4 @@
-// The rules of Slatefall as plain functions (design v1.2, sections 3 to 5).
+// The rules of Slatefall as plain functions (design v1.3, sections 3 to 5).
 // No screen code, no document, no window, no clock. Nothing is imported.
 // A game is one plain object; no function changes it in place.
 
@@ -191,9 +191,12 @@ export function hardDrop(state) {
   return settle({ ...state, piece: landed, score: state.score + (landed.y - state.piece.y) });
 }
 
-// The length of a beat in ms: each level falls faster, down to a fastest beat.
+// The length of a beat in ms: each level falls faster, down to a fastest beat. The first two levels
+// are a gentler start (design v1.3, section 5); from level 3 on 60 ms less at each level.
+const START = [900, 800];  // ms at levels 1 and 2
 export function interval(level) {
-  return Math.max(150, 800 - (level - 1) * 60);
+  const n = Number.isInteger(level) && level >= 1 ? level : 1;
+  return n <= START.length ? START[n - 1] : Math.max(150, 800 - (n - 1) * 60);
 }
 
 // From "playing" to "paused".

@@ -1,4 +1,4 @@
-// The sounds of Slatefall (design v1.2, section 10): every sound is made here, with the
+// The sounds of Slatefall (design v1.3, section 10): every sound is made here, with the
 // browser's own Web Audio, from notes written in this file. No sound files, nothing imported.
 // The voices are those of an old handheld, made clean: two pulse voices, a triangle and noise.
 // Every effect is our own; none is taken from another game.
@@ -453,7 +453,7 @@ export function setSounds(on) {
 const TIMER = 25;        // ms between two looks at what is due
 const LOOKAHEAD = 0.1;   // s of notes scheduled ahead on the audio clock, so the beat never stumbles
 
-// The tune plays a little faster as the levels go up (brief v1.3; design v1.2, section 10): 2 % at
+// The tune plays a little faster as the levels go up (brief v1.3; design v1.3, section 10): 2 % at
 // each level above the first, up to level 12, where the pieces reach their fastest fall. A pace of 1
 // is that of level 1, 140 beats a minute; from level 12 on it is 1.22, about 171.
 const PACE_PERCENT = 2;

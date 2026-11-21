@@ -1,4 +1,4 @@
-// Slatefall: the screen and the loop (design v1.2, sections 6, 7 and 9).
+// Slatefall: the screen and the loop (design v1.3, sections 6, 7 and 9).
 // Draws the state, keeps the beat, shows the panels, and hands buttons, fingers and keys to the rules.
 import {
   WIDTH, HEIGHT, cells, fits, newGame, move, rotate, softDrop, hardDrop, tick, landing, interval, pause, resume,

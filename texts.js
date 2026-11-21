@@ -1,10 +1,10 @@
-// Every word on the screen, and the version (design v1.2, sections 2 and 9). Nothing is imported.
+// Every word on the screen, and the version (design v1.3, sections 2 and 9). Nothing is imported.
 // Only two lines of text live elsewhere, because they are needed before any script runs:
 // the page's title and the "needs JavaScript" line, both in index.html.
 // Short words are drawn in the pixel lettering, which has capitals only; sentences use the phone's own typeface.
 
 export const TEXTS = {
-  version: "0.1.2",
+  version: "0.1.3",
   name: "Slatefall",
   // The name as its title shows it, large and in two lines; together they spell the name.
   nameLines: ["Slate", "fall"],
